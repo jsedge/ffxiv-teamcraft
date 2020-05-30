@@ -34,10 +34,12 @@ function filterPacketSessionID(packet) {
 module.exports.start = function(win, config, verbose, winpcap, pid) {
   isElevated().then(elevated => {
     log.info('elevated', elevated);
-    if (elevated) {
+    if (elevated || process.platform != 'win32') { // Ignore elevation on non-Windows, you can enable packet capture without it
+      if(process.platform == 'win32'){ // Only try firewall rules on Windows
       exec('netsh advfirewall firewall delete rule name="FFXIVTeamcraft"', () => {
         exec(`netsh advfirewall firewall add rule name="FFXIVTeamcraft" dir=in action=allow program="${machinaExePath}" enable=yes`);
       });
+    }
 
       const region = config.get('region', null);
       const options = isDev ?
@@ -63,6 +65,7 @@ module.exports.start = function(win, config, verbose, winpcap, pid) {
         options.pid = pid;
       }
 
+      options.machinaExePath = process.env.MACHINA_PATH || options.machinaExePath
       const acceptedPackets = [
         'itemInfo',
         'updateInventorySlot',
